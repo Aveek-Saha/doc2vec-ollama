@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 build
+mcp/data
+.vscode
+.DS_Store
+config.yaml
