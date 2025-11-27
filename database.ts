@@ -33,7 +33,7 @@ export class DatabaseManager {
             logger.debug(`Creating vec_items table if it doesn't exist`);
             db.exec(`
                 CREATE VIRTUAL TABLE IF NOT EXISTS vec_items USING vec0(
-                    embedding FLOAT[3072],
+                    embedding FLOAT[4096],
                     product_name TEXT,
                     version TEXT,
                     heading_hierarchy TEXT,
@@ -81,7 +81,7 @@ export class DatabaseManager {
             logger.info(`Creating new collection ${collectionName}`);
             await qdrantClient.createCollection(collectionName, {
                 vectors: {
-                    size: 3072,
+                    size: 4096,
                     distance: "Cosine",
                 },
             });
@@ -187,7 +187,7 @@ export class DatabaseManager {
                 logger.debug(`Using UUID: ${metadataUUID} for metadata`);
                 
                 // Generate a dummy embedding (all zeros)
-                const dummyEmbeddingSize = 3072; // Same size as your content embeddings
+                const dummyEmbeddingSize = 4096; // Same size as your content embeddings
                 const dummyEmbedding = new Array(dummyEmbeddingSize).fill(0);
                 
                 // Create a point with special metadata payload

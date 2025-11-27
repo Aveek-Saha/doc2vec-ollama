@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Buffer } from 'buffer';
 import { OpenAI } from "openai";
+import { Ollama } from 'ollama';
 import * as dotenv from "dotenv";
 import { Logger, LogLevel } from './logger';
 import { Utils } from './utils';
@@ -29,7 +30,8 @@ dotenv.config();
 
 class Doc2Vec {
     private config: Config;
-    private openai: OpenAI;
+    // private openai: OpenAI;
+    private ollama: Ollama;
     private contentProcessor: ContentProcessor;
     private logger: Logger;
 
@@ -43,7 +45,8 @@ class Doc2Vec {
         
         this.logger.info('Initializing Doc2Vec');
         this.config = this.loadConfig(configPath);
-        this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        // this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        this.ollama = new Ollama({ host: process.env.OLLAMA_ENDPOINT || 'http://localhost:11434' });
         this.contentProcessor = new ContentProcessor(this.logger);
     }
 
@@ -949,12 +952,16 @@ class Doc2Vec {
         const logger = this.logger.child('embeddings');
         try {
             logger.debug(`Creating embeddings for ${texts.length} texts`);
-            const response = await this.openai.embeddings.create({
-                model: "text-embedding-3-large",
+            // const response = await this.openai.embeddings.create({
+            //     model: "text-embedding-3-large",
+            //     input: texts,
+            // });
+            const response = await this.ollama.embed({
+                model: process.env.OLLAMA_MODEL || 'qwen3-embedding:latest',
                 input: texts,
             });
-            logger.debug(`Successfully created ${response.data.length} embeddings`);
-            return response.data.map(d => d.embedding);
+            logger.debug(`Successfully created ${response.embeddings.length} embeddings`);
+            return response.embeddings;
         } catch (error) {
             logger.error('Failed to create embeddings:', error);
             return [];

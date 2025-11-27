@@ -6,3 +6,4 @@ mcp/data
 .vscode
 .DS_Store
 config.yaml
+*.db

@@ -15,6 +15,7 @@ import * as sqliteVec from "sqlite-vec";
 import Database, { Database as DatabaseType } from "better-sqlite3";
 import { OpenAI } from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Ollama } from 'ollama'
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs'; // Import fs for checking file existence
@@ -43,6 +44,13 @@ const azureDeploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'text-em
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const geminiModel = process.env.GEMINI_MODEL || 'gemini-embedding-001';
 
+const ollamaEndpoint = process.env.OLLAMA_ENDPOINT || 'http://localhost:11434';
+const ollamaModel = process.env.OLLAMA_MODEL || '';
+let ollama: Ollama | null = null;
+if (embeddingProvider === 'ollama' && ollamaModel !== '') {
+    ollama = new Ollama({ host: ollamaEndpoint });
+}
+
 const dbDir = process.env.SQLITE_DB_DIR || __dirname; // Default to current dir if not set
 
 if (!fs.existsSync(dbDir)) {
@@ -68,6 +76,12 @@ if (strictMode) {
         case 'gemini':
             if (!geminiApiKey) {
                 console.error("Error: GEMINI_API_KEY environment variable is not set.");
+                process.exit(1);
+            }
+            break;
+        case 'ollama':
+            if (ollama === null) {
+                console.error("Error: OLLAMA_MODEL environment variable is not set.");
                 process.exit(1);
             }
             break;
@@ -131,6 +145,20 @@ async function createEmbeddings(text: string): Promise<number[]> {
                     throw new Error("Failed to get embedding from Gemini response.");
                 }
                 return result.embedding.values;
+            }
+
+            case 'ollama': {
+                if (!ollama) {
+                    throw new Error("Ollama client is not initialized. Ensure OLLAMA_MODEL is set.");
+                }
+                const response = await ollama.embed({
+                    model: ollamaModel,
+                    input: text,
+                });
+                if (!response.embeddings || response.embeddings.length === 0) {
+                    throw new Error("Failed to get embedding from Ollama response.");
+                }
+                return response.embeddings[0];
             }
             default:
                 throw new Error(`Unsupported embedding provider: ${embeddingProvider}. Supported providers: openai, azure, gemini`);
